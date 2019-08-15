@@ -1,0 +1,28 @@
+{
+    /**
+     * Split an array into fixed-sized chunks.
+     *
+     * @param  {Array}   arr  The array to split into chunks
+     * @param  {Integer} size The maximum size of each chunk
+     * @return {Array}        An array of arrays
+     */
+    _chunkArray: (arr, size) =>
+        sl.range(arr.length / size).map(x => arr.slice(x * size, (x * size) + size)),
+
+    /**
+     * Generate a SQL fragment for testing if a column value is in an array.
+     *
+     * @param  {String}  column  The name of the column to test.
+     * @param  {Object}  doc     The input document
+     * @param  {String}  path    The JSON-Path to the array containing the values.
+     * @param  {Integer} maxSize The maximum number of elements that can be in a SQL array.
+     * @return {String}          The SQL fragment.  (Example: name in ($names[0], $names[1]))
+     */
+    inArray: (column, doc, path, maxSize=500) =>
+        '(%s)'.sprintf(
+            this._chunkArray(jsonPath(doc, path), maxSize)
+            .map((chunk, chunkIndex) =>
+                "%s IN (%s)".sprintf(column, chunk.map((_x, index) =>
+                    '%s[%s]'.sprintf(path, (chunkIndex * maxSize) + index)).join(", ")))
+            .join(" OR "))
+}
